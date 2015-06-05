@@ -115,7 +115,7 @@ src/test/python/test_assert1.py:28: AssertionError
         <img src="img/rewrite.png" />
     </div>
 
-    <img src="img/c0dez.jpg" class="step" id="codez" />
+    <img src="img/c0dez.jpg" class="step" id="codez" data-dz=0 data-rotate-y="180" data-rotate-x="-90" data-dx="-1500" />
 
     <div class="step" id="import-hook">
         <h2>Step 1 - PEP302 Import Hook</h2>
@@ -138,7 +138,7 @@ class AssertionRewritingHook(object):
     # ... determine if this is a test module ...
     co = _read_pyc(fn_pypath, pyc) # check cache
     if co is None:
-      co = _rewrite_test(fn_pypath) # o_O
+      co = _rewrite_test(fn_pypath) <span class="red"># o_O</span> WHY YOU NO RED???
       _make_rewritten_pyc(pyc, co)  # cache it
     else:
       state.trace("found cached rewritten pyc")
@@ -149,6 +149,39 @@ class AssertionRewritingHook(object):
     return sys.modules[name]
         </code></pre>
     </div>
+
+    <div class="step" id="interlude">
+      <h2>Interlude - What are <strong><code>*.pyc</code></strong> files anyway?</h2>
+      <hr/>
+      <div class="chain">
+        <figure>
+          <img src="img/pysrc.png">
+          <figcaption>python source (<code>*.py</code> file)</figcaption>
+        </figure>
+        <p class="arrow">→</p>
+        <figure>
+          <img src="img/ast.png">
+          <figcaption>AST</figcaption>
+        </figure>
+        <p class="arrow">&rarr;</p>
+        <figure>
+          <img src="img/bytecode.png">
+          <figcaption>Bytecode (<code>*.pyc</code> file)</figcaption>
+        </figure>
+    </div>
+  </div>
+
+  <div class="step" id="rewrite-impl">
+    <h2>Step 3 - Parse, Modify, Compile</h2>
+    <hr/>
+    <pre><code>def _rewrite_test(fn):
+  source = fn.read("rb")
+  tree = ast.parse(source)
+  rewrite_asserts(tree) # o_O
+  co = compile(tree, fn.strpath, "exec")
+  return co
+    </code></pre>
+  </div>
 
 </div>
 
