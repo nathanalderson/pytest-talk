@@ -138,7 +138,7 @@ class AssertionRewritingHook(object):
     # ... determine if this is a test module ...
     co = _read_pyc(fn_pypath, pyc) # check cache
     if co is None:
-      co = _rewrite_test(fn_pypath) <span class="red"># o_O</span> WHY YOU NO RED???
+      co = _rewrite_test(fn_pypath) # o_O
       _make_rewritten_pyc(pyc, co)  # cache it
     else:
       state.trace("found cached rewritten pyc")
