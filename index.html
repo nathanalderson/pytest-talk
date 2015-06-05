@@ -183,6 +183,109 @@ class AssertionRewritingHook(object):
     </code></pre>
   </div>
 
+  <div class="step" id="visit-nodes">
+    <pre><code>def rewrite_asserts(mod):
+  AssertionRewriter().run(mod)
+
+class AssertionRewriter(ast.NodeVisitor):
+  def run(self, mod):
+    # basically...
+    for node in tree:
+      if isinstance(node, ast.Assert):
+        self.visit(node)
+
+  def generic_visit(self, node):
+  def visit_Assert(self, assert_):
+  def visit_Name(self, name):
+  def visit_BoolOp(self, boolop):
+  def visit_UnaryOp(self, unary):
+  def visit_BinOp(self, binop):
+  def visit_Call(self, call):
+  def visit_Attribute(self, attr):
+  def visit_Compare(self, comp): 
+    </code></pre>
+  </div>
+
+  <div class="step" id="visit-assert">
+    <pre><code>
+def visit_Assert(self, assert_):
+  ...
+  # Rewrite assert into a bunch of statements.
+  top_condition, explanation = self.visit(assert_.test)
+  # Create failure message.
+  body = self.on_failure
+  negation = ast.UnaryOp(ast.Not(), top_condition)
+  self.statements.append(ast.If(negation, body, []))
+  if assert_.msg:
+    assertmsg = self.helper('format_assertmsg', assert_.msg)
+    explanation = "\n>assert " + explanation
+  else:
+    assertmsg = ast.Str("")
+    explanation = "assert " + explanation
+  template = ast.BinOp(assertmsg, ast.Add(), ast.Str(explanation))
+  msg = self.pop_format_context(template)
+  fmt = self.helper("format_explanation", msg)
+  err_name = ast.Name("AssertionError", ast.Load())
+  exc = ast.Call(err_name, [fmt], [], None, None)
+  if sys.version_info[0] >= 3:
+    raise_ = ast.Raise(exc, None)
+  else:
+    raise_ = ast.Raise(exc, None, None)
+  body.append(raise_)
+  # Clear temporary variables by setting them to None.
+  if self.variables:
+    variables = [ast.Name(name, ast.Store())
+                 for name in self.variables]
+    clear = ast.Assign(variables, _NameConstant(None))
+    self.statements.append(clear) </code></pre>
+  </div>
+
+  <div class="step" id="visit-binop">
+    <pre><code>def visit_UnaryOp(self, unary):
+  pattern = unary_map[unary.op.__class__]
+  operand_res, operand_expl = self.visit(unary.operand)
+  res = self.assign(ast.UnaryOp(unary.op, operand_res))
+  return res, pattern % (operand_expl,)
+
+def assign(self, expr):
+  name = self.variable()
+  self.statements.append(
+      ast.Assign([ast.Name(name, ast.Store())], expr))
+  return ast.Name(name, ast.Load())
+    </code></pre>
+  </div>
+
+  <div class="step" id="before">
+    <h2>Before</h2>
+    <hr/>
+    <pre><code>def test_make_empty_file():
+  name = "/tmp/empty_test"
+  make_empty_file(name)
+  with open(name, "r") as fp:
+    assert not fp.read()
+    </code></pre>
+  </div>
+
+  <div class="step" id="after">
+    <h2>After</h2>
+    <hr/>
+    <pre><code>def test_make_empty_file():
+  name = '/tmp/empty_test'
+  make_empty_file(name)
+  with open(name, 'r') as fp:
+    @py_assert1 = fp.read
+    @py_assert3 = @py_assert1()
+    @py_assert5 = (not @py_assert3)
+    if (not @py_assert5):
+      @py_format6 = ('assert not %(py4)s\n{%(py4)s = %(py2)s\n{%(py2)s = %(py0)s.read\n}()\n}' %
+      {'py0': (@pytest_ar._saferepr(fp) if ('fp' in @py_builtins.locals() is not @py_builtins.globals()) else 'fp'),
+       'py2': @pytest_ar._saferepr(@py_assert1),
+       'py4': @pytest_ar._saferepr(@py_assert3)})
+      raise AssertionError(@pytest_ar._format_explanation(@py_format6))
+    del @py_assert5, @py_assert1, @py_assert3
+    </code></pre>
+  </div>
+
 </div>
 
 <!-- deltas! -->

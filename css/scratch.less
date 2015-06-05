@@ -404,14 +404,7 @@ pre {
 #import-hook {
 }
 
-pre code .highlighted {
-    color: @red;
-}
-
 #find-module {
-    .red {
-        color: @red;
-    }
 }
 
 #interlude {
@@ -433,10 +426,23 @@ pre code .highlighted {
     }
 }
 
+pre .comment {
+    color: @orange !important;
+}
+
 #rewrite-impl {
-    .comment {
-        color: @red;
+}
+
+#visit-nodes {
+}
+
+#visit-assert {
+    pre code {
+        font-size: 20px;
     }
+}
+
+#visit-binop {
 }
 
 /*
