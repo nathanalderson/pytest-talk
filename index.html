@@ -125,7 +125,7 @@ def pytest_configure(config):
   ...
   if mode == "rewrite":
     hook = rewrite.AssertionRewritingHook()
-    sys.meta_path.insert(0, hook)
+    <span class="highlight">sys.meta_path</span>.insert(0, hook)
         </code></pre>
     </div>
 
@@ -135,15 +135,13 @@ def pytest_configure(config):
         <pre><code># _pytest/assertion/rewrite.py
 class AssertionRewritingHook(object):
   def find_module(self, name, path=None):
-    # ... determine if this is a test module ...
-    co = _read_pyc(fn_pypath, pyc) # check cache
-    if co is None:
-      co = _rewrite_test(fn_pypath) # o_O
-      _make_rewritten_pyc(pyc, co)  # cache it
-    else:
-      state.trace("found cached rewritten pyc")
-    self.modules[name] = co, pyc
-    return self
+    if this_is_a_test_module:
+      co = _read_pyc(fn_pypath, pyc) # check cache
+      if co is None:
+        co = <span class="highlight">_rewrite_test(fn_pypath)</span>
+        _make_rewritten_pyc(pyc, co)  # cache it
+      self.modules[name] = co, pyc
+      return self
   def load_module(self, name):
     # ...basically...
     return sys.modules[name]
@@ -210,27 +208,21 @@ class AssertionRewriter(ast.NodeVisitor):
     <pre><code>
 def visit_Assert(self, assert_):
   ...
-  # Rewrite assert into a bunch of statements.
+  # Rewrite assert into a bunch of statements. Build explanation.
   top_condition, explanation = self.visit(assert_.test)
-  # Create failure message.
   body = self.on_failure
+  # Create the `if(!condition)` statement
   negation = ast.UnaryOp(ast.Not(), top_condition)
   self.statements.append(ast.If(negation, body, []))
-  if assert_.msg:
-    assertmsg = self.helper('format_assertmsg', assert_.msg)
-    explanation = "\n>assert " + explanation
-  else:
-    assertmsg = ast.Str("")
-    explanation = "assert " + explanation
+  # Format the explanation
+  explanation = "assert " + explanation
   template = ast.BinOp(assertmsg, ast.Add(), ast.Str(explanation))
   msg = self.pop_format_context(template)
   fmt = self.helper("format_explanation", msg)
+  # raise the AssertionError
   err_name = ast.Name("AssertionError", ast.Load())
   exc = ast.Call(err_name, [fmt], [], None, None)
-  if sys.version_info[0] >= 3:
-    raise_ = ast.Raise(exc, None)
-  else:
-    raise_ = ast.Raise(exc, None, None)
+  raise_ = ast.Raise(exc, None, None)
   body.append(raise_)
   # Clear temporary variables by setting them to None.
   if self.variables:
@@ -240,6 +232,7 @@ def visit_Assert(self, assert_):
     self.statements.append(clear) </code></pre>
   </div>
 
+  <!-- Don't have time for this one :(
   <div class="step" id="visit-binop">
     <pre><code>def visit_UnaryOp(self, unary):
   pattern = unary_map[unary.op.__class__]
@@ -254,6 +247,7 @@ def assign(self, expr):
   return ast.Name(name, ast.Load())
     </code></pre>
   </div>
+  -->
 
   <div class="step" id="before">
     <h2>Before</h2>
@@ -286,6 +280,21 @@ def assign(self, expr):
     </code></pre>
   </div>
 
+  <div class="step" id="resources" data-x="2000" data-y="-3000" data-z="-13000" data-rotate-x="-20" data-rotate-y="150" data-rotate-z="0" data-scala="3">
+    <h2>Resources</h2>
+    <hr/>
+    <ul>
+      <li>The pytest <a href="https://bitbucket.org/pytest-dev/pytest/src">source code</a>,
+      particularly <a href="https://bitbucket.org/pytest-dev/pytest/src/edc1d080bab5a970da8f6c776be50768829a7b09/_pytest/assertion/rewrite.py?at=2.7.1">rewrite.py</a>.
+      This presentation references the code at about the <a href="https://bitbucket.org/pytest-dev/pytest/commits/tag/2.7.1">2.7.1 tag</a>.</li>
+      <li><a href="http://pybites.blogspot.be/2011/07/behind-scenes-of-pytests-new-assertion.html">This</a> pybites blogpost
+      <li><a href="http://pytest.org/">pytest.org</a>, particularly <a href="http://pytest.org/latest/assert.html#advanced-assertion-introspection">here</a>.</li>
+      <li><a href="https://www.python.org/dev/peps/pep-0302/">PEP 0302</a></li>
+      <li>The Python docs. Particularly <a href="https://docs.python.org/2/library/ast.html">ast</a> and <a href="https://docs.python.org/2/library/functions.html#compile">compile</a>.</li>
+      <li>Presentation written using <a href="https://github.com/bartaz/impress.js/">impress.js</a>.
+      Source code <a href="https://github.com/nathanalderson/pytest-talk/tree/gh-pages">on github</a>.</li>
+    </ul>
+  </div>
 </div>
 
 <!-- deltas! -->
